@@ -1,6 +1,11 @@
 homeserverUrl: "https://t2bot.io"
 accessToken: "YOUR_TOKEN_HERE"
 userId: "@alias:t2bot.io"
+aliasDomain: "t2bot.io"
+
+allowedAliases:
+- "#telegram_*"
+- "#custom_*"
 
 # Settings for controlling how logging works
 logging:
