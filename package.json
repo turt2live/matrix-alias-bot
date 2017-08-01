@@ -1,0 +1,22 @@
+{
+  "name": "matrix-alias-bot",
+  "version": "1.0.0",
+  "description": "A matrix bot that allows uses to add aliases to rooms on the homeserver",
+  "main": "index.js",
+  "author": "Travis Ralston",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/turt2live/matrix-alias-bot.git"
+  },
+  "dependencies": {
+    "chalk": "^2.0.1",
+    "config": "^1.26.1",
+    "js-yaml": "^3.8.4",
+    "lodash": "^4.17.4",
+    "matrix-js-sdk": "^0.7.13",
+    "matrix-js-snippets": "^0.1.0",
+    "moment": "^2.18.1",
+    "winston": "^2.3.1"
+  }
+}
