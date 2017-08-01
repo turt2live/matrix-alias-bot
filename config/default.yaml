@@ -3,9 +3,16 @@ accessToken: "YOUR_TOKEN_HERE"
 userId: "@alias:t2bot.io"
 aliasDomain: "t2bot.io"
 
+# Use wildcards to signify which aliases are allowed to be added by this bot.
+# The domain part (:t2bot.io) is automatically added and checked.
 allowedAliases:
 - "#telegram_*"
 - "#custom_*"
+
+# These users can add any aliases they like through this bot. They must still have permission to
+# add aliases in the room.
+adminUsers:
+- "@youraccount:matrix.org"
 
 # Settings for controlling how logging works
 logging:

@@ -7,6 +7,7 @@ class AliasHandler {
     constructor() {
         this._aliasDomain = config['aliasDomain'];
         this._allowedWildcards = config['allowedAliases'];
+        this._adminUsers = config['adminUsers'];
     }
 
     start(client) {
@@ -49,11 +50,13 @@ class AliasHandler {
             if (!desiredAlias.endsWith(":" + this._aliasDomain))
                 desiredAlias = desiredAlias + ":" + this._aliasDomain;
 
-            var allowed = false;
-            for (var wildcardOption of this._allowedWildcards) {
-                if (wildcard(desiredAlias, wildcardOption)) {
-                    allowed = true;
-                    break;
+            var allowed = this._adminUsers.indexOf(event.getSender()) !== -1;
+            if (!allowed) {
+                for (var wildcardOption of this._allowedWildcards) {
+                    if (wildcard(desiredAlias, wildcardOption)) {
+                        allowed = true;
+                        break;
+                    }
                 }
             }
 
