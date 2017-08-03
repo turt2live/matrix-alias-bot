@@ -19,6 +19,7 @@ class AliasHandler {
             if (event.getType() !== "m.room.message") return;
 
             this._tryProcessAliasCommand(event);
+            this._tryProcessRoomCommand(event);
         });
     }
 
@@ -34,15 +35,15 @@ class AliasHandler {
                 "Alias bot help:\n" +
                 "!alias #mycoolalias   - Adds an alias on " + this._aliasDomain + "\n" +
                 "!alias allowed        - Lists the allowed alias formats\n" +
-                "!alias help           - This menu\n\n" +
-                "Head over to #alias:t2bot.io for help or more information.");
+                "!alias help           - This menu\n" +
+                "\nHead over to #alias:t2bot.io for help or more information.");
         } else if (args[0] === "allowed") {
             if (this._allowedWildcards.length <= 0) this._client.sendNotice(event.getRoomId(), "The administrator has not allowed any wildcard aliases.");
             else this._client.sendNotice(event.getRoomId(), "The following alias wildcards are allowed:\n" + this._allowedWildcards.join("\n"));
         } else if (args[0].startsWith("#") || args[0] === "remove" || args[0] === "add") {
-            if (!this._hasPermission(event.getSender(), event.getRoomId())) {
+            if (!this._hasPermission(event.getSender(), event.getRoomId(), "m.room.aliases")) {
                 LogService.warn("AliasHandler", event.getSender() + " tried to use command `" + message + "` in room " + event.getRoomId() + " without permission");
-                this._client.sendNotice(event.getRoomId(), "You must be able to configure the room to add an alias.");
+                this._client.sendNotice(event.getRoomId(), "You do not seem to have permission to send m.room.aliases events (usually requires moderator privileges)");
                 return;
             }
 
@@ -99,7 +100,45 @@ class AliasHandler {
         }
     }
 
-    _hasPermission(sender, roomId) {
+    _tryProcessRoomCommand(event) {
+        var message = event.getContent().body;
+        if (!message.startsWith("!room ")) return;
+
+        LogService.verbose("AliasHandler", "Processing command from " + event.getSender() + " in room " + event.getRoomId() + ": " + message);
+
+        var args = message.substring("!room ".length).trim().split(" ");
+        if (args.length <= 0 || args[0] === "help") {
+            this._client.sendNotice(event.getRoomId(), "" +
+                "Alias bot help:\n" +
+                "!room list            - Lists this room in the room directory of " + this._aliasDomain + "\n" +
+                "!room delist          - Removes this room from the " + this._aliasDomain+" room directory\n" +
+                "!room help            - This menu\n" +
+                "\nHead over to #alias:t2bot.io for help or more information.");
+        } else if (args[0] === "list" || args[0] == "delist") {
+            if (!this._hasPermission(event.getSender(), event.getRoomId(), "io.t2l.aliasbot.list_room")) {
+                LogService.warn("AliasHandler", event.getSender() + " tried to use command `" + message + "` in room " + event.getRoomId() + " without permission");
+                this._client.sendNotice(event.getRoomId(), "You do not seem to have permission to send io.t2l.aliasbot.list_room events (usually requires moderator privileges)");
+                return;
+            }
+
+            this._client.setRoomDirectoryVisibility(event.getRoomId(), args[0] === "list" ? "public" : "private").then(() => {
+                LogService.info("AliasHandler", "Set room directory visibility for " + event.getRoomId()+" to " + args[0]+" because of "+ event.getSender());
+                this._client.sendNotice(event.getRoomId(), "This room has been " + (args[0] === "list" ? "added to" : "removed from") +" the room directory");
+            }).catch(error => {
+                LogService.error("AliasHandler", "Could not " + args[0] + " room " + event.getRoomId()+" in room directory as requested by " + event.getSender());
+                LogService.error("AliasHandler", error);
+                if (error.message == "This server requires you to be a moderator in the room to edit its room list entry") {
+                    this._client.sendNotice(event.getRoomId(), "I must be a moderator in this room to list this room on "+ this._aliasDomain);
+                } else {
+                    this._client.sendNotice(event.getRoomId(), "There was an error processing your command");
+                }
+            })
+        } else {
+            this._client.sendNotice(event.getRoomId(), "Unknown command. Try !room help");
+        }
+    }
+
+    _hasPermission(sender, roomId, eventType) {
         var room = this._client.getRoom(roomId);
         var powerLevels = room.currentState.getStateEvents('m.room.power_levels', '');
         if (!powerLevels) return false;
@@ -112,7 +151,7 @@ class AliasHandler {
         if (!powerLevel) powerLevel = powerLevels['users_default'];
         if (!powerLevel) powerLevel = 0; // default
 
-        var eventPowerLevel = eventPowerLevels["m.room.aliases"];
+        var eventPowerLevel = eventPowerLevels[eventType];
         if (!eventPowerLevel) eventPowerLevel = powerLevels["state_default"];
         if (!eventPowerLevel) eventPowerLevel = 50;
         if (!eventPowerLevel) return false;
