@@ -24,11 +24,11 @@ class AliasHandler {
 
     _tryProcessAliasCommand(event) {
         var message = event.getContent().body;
-        if (!message.startsWith("!alias")) return;
+        if (!message.startsWith("!alias ") && !message.startsWith("!roomalias ")) return;
 
         LogService.verbose("AliasHandler", "Processing command from " + event.getSender() + " in room " + event.getRoomId() + ": " + message);
 
-        var args = message.substring("!alias ".length).trim().split(" ");
+        var args = message.substring(message.startsWith("!alias") ? "!alias ".length : "!roomalias ".length).trim().split(" ");
         if (args.length <= 0 || args[0] === "help") {
             this._client.sendNotice(event.getRoomId(), "" +
                 "Alias bot help:\n" +
