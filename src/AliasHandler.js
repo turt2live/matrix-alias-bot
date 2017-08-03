@@ -114,6 +114,7 @@ class AliasHandler {
 
         var eventPowerLevel = eventPowerLevels["m.room.aliases"];
         if (!eventPowerLevel) eventPowerLevel = powerLevels["state_default"];
+        if (!eventPowerLevel) eventPowerLevel = 50;
         if (!eventPowerLevel) return false;
 
         return eventPowerLevel <= powerLevel;
