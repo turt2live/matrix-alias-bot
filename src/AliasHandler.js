@@ -39,15 +39,17 @@ class AliasHandler {
         } else if (args[0] === "allowed") {
             if (this._allowedWildcards.length <= 0) this._client.sendNotice(event.getRoomId(), "The administrator has not allowed any wildcard aliases.");
             else this._client.sendNotice(event.getRoomId(), "The following alias wildcards are allowed:\n" + this._allowedWildcards.join("\n"));
-        } else if (args[0].startsWith("#")) {
+        } else if (args[0].startsWith("#") || args[0] === "remove") {
             if (!this._hasPermission(event.getSender(), event.getRoomId())) {
                 LogService.warn("AliasHandler", event.getSender() + " tried to use command `" + message + "` in room " + event.getRoomId() + " without permission");
                 this._client.sendNotice(event.getRoomId(), "You must be able to configure the room to add an alias.");
                 return;
             }
 
-            var desiredAlias = args[0];
-            if (!desiredAlias.endsWith(":" + this._aliasDomain))
+            var isAdding = args[0] !== "remove";
+
+            var desiredAlias = args[isAdding ? 0 : 1];
+            if (!desiredAlias || !desiredAlias.endsWith(":" + this._aliasDomain))
                 desiredAlias = desiredAlias + ":" + this._aliasDomain;
 
             var allowed = this._adminUsers.indexOf(event.getSender()) !== -1;
@@ -60,20 +62,33 @@ class AliasHandler {
                 }
             }
 
+            var aliasPromise = null;
             if (!allowed) {
                 LogService.warn("AliasHandler", event.getSender() + " tried to add a disallowed alias in room " + event.getRoomId() + ": " + desiredAlias);
                 this._client.sendNotice(event.getRoomId(), "That alias is not allowed. See !alias allowed for the allowed aliases");
-            } else {
-                this._client.createAlias(desiredAlias, event.getRoomId()).then(() => {
-                    LogService.info("AliasHandler", "User " + event.getSender() + " added alias " + desiredAlias + " to room " + event.getRoomId());
-                    this._client.sendNotice(event.getRoomId(), "The alias " + desiredAlias + " has been added to the room");
+            } else if (isAdding) {
+                aliasPromise = this._client.createAlias(desiredAlias, event.getRoomId());
+            } else if (!isAdding) {
+                var room = this._client.getRoom(event.getRoomId());
+                var aliases = room.getAliases();
+                if (aliases.indexOf(desiredAlias) === -1) {
+                    this._client.sendNotice(event.getRoomId(), "That alias does not belong to this room or does not exist");
+                } else aliasPromise = this._client.deleteAlias(desiredAlias);
+            }
+
+            if (aliasPromise) {
+                aliasPromise.then(() => {
+                    LogService.info("AliasHandler", "User " + event.getSender() + " " + (isAdding ? "added" : "removed") + " alias " + desiredAlias + " in room " + event.getRoomId());
+                    this._client.sendNotice(event.getRoomId(), "The alias " + desiredAlias + " has been " + (isAdding ? "added to" : "removed from") + " the room");
                 }).catch(error => {
-                    LogService.error("AliasHandler", "Could not add alias " + desiredAlias + " to room " + event.getRoomId() + " as requested by " + event.getSender());
+                    LogService.error("AliasHandler", "Could not " + (isAdding ? "add" : "remove") + " alias " + desiredAlias + " in room " + event.getRoomId() + " as requested by " + event.getSender());
                     LogService.error("AliasHandler", error);
                     if (error.message == "Room alias must be local") {
                         this._client.sendNotice(event.getRoomId(), "The room alias is invalid.");
                     } else if (error.message == "Room alias " + desiredAlias + " already exists") {
                         this._client.sendNotice(event.getRoomId(), "The room alias is already in use by another room");
+                    } else if (error.message == "You don't have permission to delete the alias.") {
+                        this._client.sendNotice(event.getRoomId(), "The alias does not exist or I do not have permission to remove the alias");
                     } else {
                         this._client.sendNotice(event.getRoomId(), "There was an error processing your command");
                     }
