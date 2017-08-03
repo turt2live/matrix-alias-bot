@@ -26,12 +26,6 @@ class AliasHandler {
         var message = event.getContent().body;
         if (!message.startsWith("!alias")) return;
 
-        if (!this._hasPermission(event.getSender(), event.getRoomId())) {
-            LogService.warn("AliasHandler", event.getSender() + " tried to use command `" + message + "` in room " + event.getRoomId() + " without permission");
-            this._client.sendNotice(event.getRoomId(), "You do not have permission to configure aliases in this room.");
-            return;
-        }
-
         LogService.verbose("AliasHandler", "Processing command from " + event.getSender() + " in room " + event.getRoomId() + ": " + message);
 
         var args = message.substring("!alias ".length).trim().split(" ");
@@ -46,6 +40,12 @@ class AliasHandler {
             if (this._allowedWildcards.length <= 0) this._client.sendNotice(event.getRoomId(), "The administrator has not allowed any wildcard aliases.");
             else this._client.sendNotice(event.getRoomId(), "The following alias wildcards are allowed:\n" + this._allowedWildcards.join("\n"));
         } else if (args[0].startsWith("#")) {
+            if (!this._hasPermission(event.getSender(), event.getRoomId())) {
+                LogService.warn("AliasHandler", event.getSender() + " tried to use command `" + message + "` in room " + event.getRoomId() + " without permission");
+                this._client.sendNotice(event.getRoomId(), "You must be able to configure the room to add an alias.");
+                return;
+            }
+
             var desiredAlias = args[0];
             if (!desiredAlias.endsWith(":" + this._aliasDomain))
                 desiredAlias = desiredAlias + ":" + this._aliasDomain;
