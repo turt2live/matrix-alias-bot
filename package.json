@@ -14,7 +14,7 @@
     "config": "^1.26.1",
     "js-yaml": "^3.8.4",
     "lodash": "^4.17.4",
-    "matrix-js-sdk": "^0.7.13",
+    "matrix-js-sdk": "^0.8.0",
     "matrix-js-snippets": "^0.1.0",
     "moment": "^2.18.1",
     "node-wildcard": "0.0.9",
