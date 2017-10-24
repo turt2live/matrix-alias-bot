@@ -102,7 +102,7 @@ class AliasHandler {
 
     _tryProcessRoomCommand(event) {
         var message = event.getContent().body;
-        if (!message.startsWith("!room ")) return;
+        if (!message || !message.startsWith("!room ")) return;
 
         LogService.verbose("AliasHandler", "Processing command from " + event.getSender() + " in room " + event.getRoomId() + ": " + message);
 
