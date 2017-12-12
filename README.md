@@ -1,8 +1,6 @@
 # matrix-alias-bot
 
 [![TravisCI badge](https://travis-ci.org/turt2live/matrix-alias-bot.svg?branch=master)](https://travis-ci.org/turt2live/matrix-alias-bot)
-[![Targeted for next release](https://badge.waffle.io/turt2live/matrix-alias-bot.png?label=sorted&title=Targeted+for+next+release)](https://waffle.io/turt2live/waffle-matrix?utm_source=badge)
-[![WIP](https://badge.waffle.io/turt2live/matrix-alias-bot.png?label=wip&title=WIP)](https://waffle.io/turt2live/waffle-matrix?utm_source=badge)
 
 A matrix bot that allows users to add aliases on the homeserver it runs on. 
 
