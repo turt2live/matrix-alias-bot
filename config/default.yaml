@@ -1,6 +1,5 @@
 homeserverUrl: "https://t2bot.io"
 accessToken: "YOUR_TOKEN_HERE"
-userId: "@alias:t2bot.io"
 aliasDomain: "t2bot.io"
 
 # Use wildcards to signify which aliases are allowed to be added by this bot.
