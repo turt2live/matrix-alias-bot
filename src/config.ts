@@ -7,6 +7,7 @@ interface IConfig {
     aliasDomain: string;
     allowedAliases: string[];
     adminUsers: string[];
+    dataPath: string;
 
     logging: LogConfig;
 }

@@ -5,7 +5,7 @@ import { CommandProcessor } from "./CommandProcessor";
 import { LocalstorageStorageProvider } from "./LocalstorageStorageProvider";
 
 LogService.configure(config.logging);
-const storageProvider = new LocalstorageStorageProvider("./storage");
+const storageProvider = new LocalstorageStorageProvider(config.dataPath);
 const client = new MatrixClient(config.homeserverUrl, config.accessToken, storageProvider);
 const commands = new CommandProcessor(client);
 

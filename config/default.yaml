@@ -13,6 +13,9 @@ allowedAliases:
 adminUsers:
 - "@youraccount:matrix.org"
 
+# Where sync data and other related information should be stored
+dataPath: "./storage"
+
 # Settings for controlling how logging works
 logging:
   file: logs/aliasbot.log
