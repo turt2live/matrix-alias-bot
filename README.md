@@ -20,5 +20,21 @@ For information on the available aliases, type `!alias allowed`
 
 1. Clone this repository
 2. `npm install`
+3. `npm run build`
 3. Copy `config/default.yaml` to `config/production.yaml`
-4. Run the bot with `NODE_ENV=production node index.js`
+4. Run the bot with `NODE_ENV=production node lib/index.js`
+
+### Docker
+
+```
+# Create the directory structure
+mkdir -p /matrix-alias-bot/config
+mkdir -p /matrix-alias-bot/logs
+
+# Create the configuration file. Use the default configration as a template.
+# Be sure to change the log path to /data/logs
+nano /matrix-alias-bot/config/production.yaml
+
+# Run the container
+docker run -v /matrix-alias-bot:/data turt2live/matrix-alias-bot
+```
