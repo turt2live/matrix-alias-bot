@@ -28,11 +28,14 @@ For information on the available aliases, type `!alias allowed`
 
 ```
 # Create the directory structure
+# This is all the information kept in the volume: config, logs, and cache
 mkdir -p /matrix-alias-bot/config
 mkdir -p /matrix-alias-bot/logs
+mkdir -p /matrix-alias-bot/storage
 
 # Create the configuration file. Use the default configration as a template.
 # Be sure to change the log path to /data/logs
+# Be sure to point the dataPath at /data/storage
 nano /matrix-alias-bot/config/production.yaml
 
 # Run the container
