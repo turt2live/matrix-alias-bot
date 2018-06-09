@@ -1,12 +1,8 @@
 .git
 node_modules
-
-# This is just stuff we don't need
-.travis.yml
-.gitignore
 config
 lib
 logs
 storage
 db
-README.md
+*.db
