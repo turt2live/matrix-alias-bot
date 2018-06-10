@@ -1,14 +1,20 @@
 import { MatrixClient } from "matrix-bot-sdk";
 import config from "./config";
-import { LogService } from "matrix-js-snippets";
+import Provisioner, {
+    ERR_ALIAS_CANNOT_DELETE,
+    ERR_ALIAS_INVALID,
+    ERR_ALIAS_NOT_ALLOWED,
+    ERR_ALIAS_NOT_FOUND,
+    ERR_ALIAS_PERMISSION_DENIED,
+    ERR_ALIAS_TAKEN
+} from "./Provisioner";
 import striptags = require("striptags");
-import wildcard = require("node-wildcard");
 
 export class CommandProcessor {
-    constructor(private client: MatrixClient) {
+    constructor(private client: MatrixClient, private provisioner: Provisioner) {
     }
 
-    public tryCommand(roomId: string, event: any): Promise<any> {
+    public async tryCommand(roomId: string, event: any): Promise<any> {
         const message = event['content']['body'];
         if (!message || !message.startsWith("!alias")) return;
 
@@ -20,131 +26,93 @@ export class CommandProcessor {
         }
 
         if (command === "allowed") {
-            const htmlMessage = "<p>The following alias wildcards are allowed<br /><ul>" +
-                "<li><code>" + config.allowedAliases.join("</code></li><li><code>") + "</code></li>" +
-                "</ul></p>";
-            return this.client.sendMessage(roomId, {
-                msgtype: "m.notice",
-                body: striptags(htmlMessage),
-                format: "org.matrix.custom.html",
-                formatted_body: htmlMessage,
-            });
-        } else if (command === "remove" || command === "add") {
-            if (args.length < 1) {
-                return this.client.sendNotice(roomId, "Please provide a room alias. For help, say !alias help");
+            const allowedAliases = await this.provisioner.getAllowedAliases(event['sender']);
+            const htmlMessage = "<p>You are able to use the following alias formats<br /><ul><li><code>" + allowedAliases.join("</code></li><li><code>") + "</code></li></ul></p>";
+            return this.sendHtmlReply(roomId, event, htmlMessage, "info");
+        } else if (command === "remove" || command === "add" || command[0] === "#") {
+            let alias = command;
+            let adding = true;
+            if (command[0] !== "#") {
+                if (args.length < 1) {
+                    return this.sendHtmlReply(roomId, event, "Please provide a room alias. For help, say !alias help", "warning");
+                }
+
+                alias = args[0];
+                adding = command === "add";
             }
 
-            return this.doAddRemoveAlias(roomId, event['sender'], args[0], command === "add");
-        } else if (command[0] === "#") {
-            return this.doAddRemoveAlias(roomId, event['sender'], command, true);
+            if (adding) {
+                await this.provisioner.addAlias(roomId, event['sender'], alias)
+                    .then(() => this.sendHtmlReply(roomId, event, "That alias has been added to the room.", "success"))
+                    .catch(err => {
+                        if (err.errorCode) {
+                            switch (err.errorCode) {
+                                case ERR_ALIAS_PERMISSION_DENIED:
+                                    return this.sendHtmlReply(roomId, event, "You do not have permission to add aliases in this room.", "error");
+                                case ERR_ALIAS_NOT_ALLOWED:
+                                    return this.sendHtmlReply(roomId, event, "That alias is not allowed.", "error");
+                                case ERR_ALIAS_TAKEN:
+                                    return this.sendHtmlReply(roomId, event, "That alias is already in use in another room.", "error");
+                                case ERR_ALIAS_INVALID:
+                                    return this.sendHtmlReply(roomId, event, "That alias is invalid.", "error");
+                            }
+                        }
+
+                        return this.sendHtmlReply(roomId, event, "There was an error processing your command.", "critical");
+                    });
+            } else {
+                await this.provisioner.removeAlias(roomId, event['sender'], alias)
+                    .then(() => this.sendHtmlReply(roomId, event, "That alias has been removed from the room.", "success"))
+                    .catch(err => {
+                        if (err.errorCode) {
+                            switch (err.errorCode) {
+                                case ERR_ALIAS_PERMISSION_DENIED:
+                                    return this.sendHtmlReply(roomId, event, "You do not have permission to add aliases in this room.", "error");
+                                case ERR_ALIAS_NOT_ALLOWED:
+                                    return this.sendHtmlReply(roomId, event, "That alias is not allowed.", "error");
+                                case ERR_ALIAS_NOT_FOUND:
+                                    return this.sendHtmlReply(roomId, event, "That alias does not exist or does not belong to this room.", "error");
+                                case ERR_ALIAS_INVALID:
+                                    return this.sendHtmlReply(roomId, event, "That alias is invalid.", "error");
+                                case ERR_ALIAS_CANNOT_DELETE:
+                                    return this.sendHtmlReply(roomId, event, "The alias does not exist or I do not have permission to remove it.", "error");
+                            }
+                        }
+
+                        return this.sendHtmlReply(roomId, event, "There was an error processing your command.", "critical");
+                    });
+            }
         } else {
             const htmlMessage = "<p>Alias bot help:<br /><pre><code>" +
                 `!alias #mycoolalias          - Adds an alias on ${config.aliasDomain}\n` +
-                "!alias allowed               - Lists the allowed alias formats\n" +
                 "!alias remove &lt;alias&gt;        - Removes the given alias from the room\n" +
+                "!alias allowed               - Lists the allowed alias formats\n" +
                 //`!alias publish               - Publishes this room on the room directory for ${config.aliasDomain}\n` +
                 //`!alias unpublish             - Removes this room from the room directory for ${config.aliasDomain}\n` +
                 "!alias help                  - This menu\n" +
                 "</code></pre></p>" +
-                "<p>For help or more information, visit <a href='https://matrix.to/#/#help:t2bot.io'>#help:t2bot.io</a></p>";
-            return this.client.sendMessage(roomId, {
-                msgtype: "m.notice",
-                body: striptags(htmlMessage),
-                format: "org.matrix.custom.html",
-                formatted_body: htmlMessage,
-            });
+                (config.helpChannel ? "<p>For help or more information, visit <a href='https://matrix.to/#/" + config.helpChannel + "'>" + config.helpChannel + "</a></p>" : "");
+            return this.sendHtmlReply(roomId, event, htmlMessage, "info");
         }
     }
 
-    private async doAddRemoveAlias(roomId: string, sender: string, alias: string, isAdding: boolean) {
-        const isAdmin = config.adminUsers.indexOf(sender) !== -1;
-
-        const hasPermission = await this.hasPermission(roomId, sender);
-        if (!hasPermission && !isAdmin) {
-            return this.client.sendNotice(roomId, "You do not have permission to run that command in this room.");
-        }
-
-        let desiredAlias = alias;
-        if (!desiredAlias.endsWith(":" + config.aliasDomain))
-            desiredAlias = desiredAlias + ":" + config.aliasDomain;
-
-        if (!isAdmin) {
-            let allowed = false;
-            for (const option of config.allowedAliases) {
-                if (wildcard(desiredAlias, option)) {
-                    allowed = true;
-                    break;
-                }
-            }
-
-            if (!allowed) {
-                return this.client.sendNotice(roomId, "The alias '" + desiredAlias + "' is not allowed.");
-            }
-        }
-
-        let aliasPromise: Promise<any> = null;
-        if (isAdding) {
-            aliasPromise = this.client.createRoomAlias(desiredAlias, roomId).then(() => {
-                return this.client.sendNotice(roomId, "The room alias has been added!");
-            });
-        } else {
-            const aliases = await this.getAllAliases(roomId);
-            if (aliases.indexOf(desiredAlias) === -1) {
-                return this.client.sendNotice(roomId, "That room alias doesn't belong to this room or doesn't exist");
-            }
-
-            aliasPromise = this.client.deleteRoomAlias(desiredAlias).then(() => {
-                return this.client.sendNotice(roomId, "The room alias has been removed.");
-            });
-        }
-
-        return aliasPromise.catch(err => {
-            if (err['body'] && err['body']['error']) {
-                const errMessage = err['body']['error'];
-
-                if (errMessage === "Room alias " + desiredAlias + " already exists") {
-                    return this.client.sendNotice(roomId, "That room alias is already in use by another room");
-                } else if (errMessage === "Room alias must be local") {
-                    return this.client.sendNotice(roomId, "That room alias is invalid");
-                } else if (errMessage === "You don't have permission to delete the alias.") {
-                    return this.client.sendNotice(roomId, "The alias does not exist or I do not have permission to remove the alias");
-                }
-            }
-
-            LogService.error("CommandProcessor", err);
-            return this.client.sendNotice(roomId, "There was an error processing your command");
+    private sendHtmlReply(roomId: string, event: any, message: string, status: "info" | "warning" | "error" | "critical" | "success"): Promise<any> {
+        const plain = "> <" + event['sender'] + "> " + event['content']['body'] + "\n\n" + striptags(message);
+        const html = "" +
+            "<mx-reply><blockquote>" +
+            "<a href='https://matrix.to/#/" + roomId + "/" + event['event_id'] + "'>In reply to</a> <a href='https://matrix.to/#/" + event['sender'] + "'>" + event['sender'] + "</a><br/>" +
+            event['content']['body'] + "</blockquote></mx-reply>" + message;
+        return this.client.sendMessage(roomId, {
+            msgtype: "m.notice",
+            body: plain,
+            format: "org.matrix.custom.html",
+            formatted_body: html,
+            status: status,
+            "m.relates_to": {
+                "m.in_reply_to": {
+                    event_id: event['event_id'],
+                },
+            },
         });
-    }
-
-    private async getAllAliases(roomId: string): Promise<string[]> {
-        try {
-            const events = await this.client.getRoomState(roomId).filter(e => e['type'] === "m.room.aliases");
-            const aliases = [];
-
-            for (const event of events) {
-                if (event['content'] && event['content']['aliases']) {
-                    event['content']['aliases'].forEach(a => aliases.push(a));
-                }
-            }
-
-            return aliases;
-        } catch (err) {
-            LogService.error("CommandProcessor", err);
-        }
-
-        return [];
-    }
-
-    private async hasPermission(roomId: string, sender: string): Promise<boolean> {
-        const plEvent = await this.client.getRoomStateEvents(roomId, "m.room.power_levels", "");
-        if (!plEvent) return false;
-
-        let userLevel = 0;
-        let requiredLevel = 50;
-        if (plEvent['users_default']) userLevel = plEvent['users_default'];
-        if (plEvent['users'] && plEvent['users'][sender]) userLevel = plEvent['users'][sender];
-        if (plEvent['state_default']) requiredLevel = plEvent['state_default'];
-
-        return userLevel >= requiredLevel;
     }
 }

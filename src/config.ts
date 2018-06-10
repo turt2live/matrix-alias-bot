@@ -8,6 +8,7 @@ interface IConfig {
     allowedAliases: string[];
     adminUsers: string[];
     dataPath: string;
+    helpChannel: string;
 
     logging: LogConfig;
 }

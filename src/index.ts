@@ -3,11 +3,13 @@ import config from "./config";
 import { LogService } from "matrix-js-snippets";
 import { CommandProcessor } from "./CommandProcessor";
 import { LocalstorageStorageProvider } from "./LocalstorageStorageProvider";
+import Provisioner from "./Provisioner";
 
 LogService.configure(config.logging);
 const storageProvider = new LocalstorageStorageProvider(config.dataPath);
 const client = new MatrixClient(config.homeserverUrl, config.accessToken, storageProvider);
-const commands = new CommandProcessor(client);
+const provisioner = new Provisioner(client);
+const commands = new CommandProcessor(client, provisioner);
 
 let userId = "";
 client.getUserId().then(uid => {
