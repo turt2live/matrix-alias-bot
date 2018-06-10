@@ -66,6 +66,8 @@ export default class ProvisioningApi {
         this.app.get("/api/v1/rooms/:roomId/aliases", this.getAliasesInRoom.bind(this));
         this.app.put("/api/v1/rooms/:roomId/aliases/:alias", this.addAliasToRoom.bind(this));
         this.app.delete("/api/v1/rooms/:roomId/aliases/:alias", this.removeAliasFromRoom.bind(this));
+        this.app.get("/api/v1/rooms/:roomId/directory_visibility", this.getDirectoryVisibility.bind(this));
+        this.app.put("/api/v1/rooms/:roomId/directory_visibility/:visibility", this.setDirectoryVisibility.bind(this));
     }
 
     public start() {
@@ -125,6 +127,42 @@ export default class ProvisioningApi {
 
         return res.status(200).send({
             alias: alias,
+        });
+    }
+
+    private async getDirectoryVisibility(req, res): Promise<any> {
+        if (!this.validateToken(req)) {
+            return res.status(401).send({errcode: "T2B_INVALID_TOKEN", error: "Token incorrect or missing"});
+        }
+
+        const visibility = await this.provisioner.getRoomDirectoryVisibility(req.params.roomId, req.query.userId);
+
+        return res.status(200).send({
+            visibility: visibility,
+        });
+    }
+
+    private async setDirectoryVisibility(req, res): Promise<any> {
+        if (!this.validateToken(req)) {
+            return res.status(401).send({errcode: "T2B_INVALID_TOKEN", error: "Token incorrect or missing"});
+        }
+
+        const visibility = req.params.visibility;
+        if (visibility !== "private" && visibility !== "public") {
+            return res.status(400).send({
+                error: "Visibility must be 'public' or 'private'",
+                errcode: ERR_ALIAS_UNKNOWN_ERROR
+            });
+        }
+
+        if (visibility === "public") {
+            await this.provisioner.listRoomInDirectory(req.params.roomId, req.query.userId);
+        } else {
+            await this.provisioner.removeRoomFromDirectory(req.params.roomId, req.query.userId);
+        }
+
+        return res.status(200).send({
+            visibility: visibility,
         });
     }
 }

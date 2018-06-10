@@ -8,6 +8,7 @@ import Provisioner, {
     ERR_ALIAS_PERMISSION_DENIED,
     ERR_ALIAS_TAKEN
 } from "./Provisioner";
+import { LogService } from "matrix-js-snippets";
 import striptags = require("striptags");
 
 export class CommandProcessor {
@@ -82,13 +83,27 @@ export class CommandProcessor {
                         return this.sendHtmlReply(roomId, event, "There was an error processing your command.", "critical");
                     });
             }
+        } else if (command === "publish") {
+            return this.provisioner.listRoomInDirectory(roomId, event['sender']).then(() => {
+                return this.sendHtmlReply(roomId, event, "This room will now appear in the public room directory.", "success");
+            }).catch(e => {
+                LogService.error("CommandProcessor", e);
+                return this.sendHtmlReply(roomId, event, "There was an error processing your command.", "critical");
+            });
+        } else if (command === "unpublish") {
+            return this.provisioner.removeRoomFromDirectory(roomId, event['sender']).then(() => {
+                return this.sendHtmlReply(roomId, event, "This room has been removed from the public room directory.", "success");
+            }).catch(e => {
+                LogService.error("CommandProcessor", e);
+                return this.sendHtmlReply(roomId, event, "There was an error processing your command.", "critical");
+            });
         } else {
             const htmlMessage = "<p>Alias bot help:<br /><pre><code>" +
                 `!alias #mycoolalias          - Adds an alias on ${config.aliasDomain}\n` +
                 "!alias remove &lt;alias&gt;        - Removes the given alias from the room\n" +
                 "!alias allowed               - Lists the allowed alias formats\n" +
-                //`!alias publish               - Publishes this room on the room directory for ${config.aliasDomain}\n` +
-                //`!alias unpublish             - Removes this room from the room directory for ${config.aliasDomain}\n` +
+                `!alias publish               - Publishes this room on the public room directory for ${config.aliasDomain}\n` +
+                `!alias unpublish             - Removes this room from the public room directory for ${config.aliasDomain}\n` +
                 "!alias help                  - This menu\n" +
                 "</code></pre></p>" +
                 (config.helpChannel ? "<p>For help or more information, visit <a href='https://matrix.to/#/" + config.helpChannel + "'>" + config.helpChannel + "</a></p>" : "");

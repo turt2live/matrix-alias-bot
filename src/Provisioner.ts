@@ -9,6 +9,48 @@ export default class Provisioner {
     }
 
     /**
+     * Lists a room in the room directory
+     * @param {string} roomId The room ID to list in the directory
+     * @param {string} userId The user ID listing the room
+     * @return {Promise<*>} Resolves when the room has been updated. Rejected if there was an error.
+     */
+    public async listRoomInDirectory(roomId: string, userId: string): Promise<any> {
+        const hasPermission = await this.hasPermission(roomId, userId);
+
+        if (!hasPermission) throw new ProvisionerError(ERR_ALIAS_PERMISSION_DENIED, "You cannot list this room in the room directory.");
+
+        return this.client.setDirectoryVisibility(roomId, "public");
+    }
+
+    /**
+     * Removes a room from the room directory
+     * @param {string} roomId The room ID to remove from the directory
+     * @param {string} userId The user ID de-listing the room
+     * @return {Promise<*>} Resolves when the room has been updated. Rejected if there was an error.
+     */
+    public async removeRoomFromDirectory(roomId: string, userId: string): Promise<any> {
+        const hasPermission = await this.hasPermission(roomId, userId);
+
+        if (!hasPermission) throw new ProvisionerError(ERR_ALIAS_PERMISSION_DENIED, "You cannot remove this room from the room directory.");
+
+        return this.client.setDirectoryVisibility(roomId, "private");
+    }
+
+    /**
+     * Gets a room's visibility in the room directory
+     * @param {string} roomId The room ID to query
+     * @param {string} userId The user ID that is querying the state
+     * @return {Promise<"public" | "private">} Resolves to the room's visibility in the directory. Rejected if there was an error.
+     */
+    public async getRoomDirectoryVisibility(roomId: string, userId: string): Promise<"public" | "private"> {
+        const isInRoom = await this.isInRoom(userId, roomId);
+
+        if (!isInRoom) throw new ProvisionerError(ERR_ALIAS_PERMISSION_DENIED, "You are not in the room.");
+
+        return this.client.getDirectoryVisibility(roomId);
+    }
+
+    /**
      * Adds an alias to the given room
      * @param {string} roomId The room ID to add the alias to
      * @param {string} userId The user ID adding the alias
