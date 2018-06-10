@@ -13,9 +13,9 @@ export default class Provisioner {
      * @param {string} roomId The room ID to add the alias to
      * @param {string} userId The user ID adding the alias
      * @param {string} alias The alias to add
-     * @return {Promise<*, ProvisionerError>} Resolves when the alias has been added. Rejected if there was an error.
+     * @return {Promise<string, ProvisionerError>} Resolves to the alias that was added. Rejected if there was an error.
      */
-    public async addAlias(roomId: string, userId: string, alias: string): Promise<any> {
+    public async addAlias(roomId: string, userId: string, alias: string): Promise<string> {
         const hasPermission = await this.hasPermission(roomId, userId);
         const allowedAliases = await this.getAllowedAliases(userId);
 
@@ -28,7 +28,7 @@ export default class Provisioner {
         if (!hasPermission) throw new ProvisionerError(ERR_ALIAS_PERMISSION_DENIED, "You cannot add aliases in this room.");
         if (!isAllowed) throw new ProvisionerError(ERR_ALIAS_NOT_ALLOWED, "The alias you provided is not allowed.");
 
-        return this.client.createRoomAlias(transformedAlias, roomId).catch(err => {
+        return this.client.createRoomAlias(transformedAlias, roomId).then(() => transformedAlias).catch(err => {
             LogService.error("Provisioner", "Error adding alias '" + transformedAlias + "' to " + roomId);
             LogService.error("Provisioner", err);
 
@@ -51,9 +51,9 @@ export default class Provisioner {
      * @param {string} roomId The room ID to remove the alias from
      * @param {string} userId The user ID removing the alias
      * @param {string} alias The alias to remove
-     * @return {Promise<*, ProvisionerError>} Resolves when the alias has been removed. Rejected if there was an error.
+     * @return {Promise<string, ProvisionerError>} Resolves to the alias that was removed. Rejected if there was an error.
      */
-    public async removeAlias(roomId: string, userId: string, alias: string): Promise<any> {
+    public async removeAlias(roomId: string, userId: string, alias: string): Promise<string> {
         const hasPermission = await this.hasPermission(roomId, userId);
         const allowedAliases = await this.getAllowedAliases(userId);
 
@@ -69,7 +69,7 @@ export default class Provisioner {
         const aliases = await this.getAliasesInRoom(roomId, userId);
         if (aliases.indexOf(transformedAlias) === -1) throw new ProvisionerError(ERR_ALIAS_NOT_FOUND, "The alias does not appear to belong to this room or does not exist.");
 
-        return this.client.deleteRoomAlias(transformedAlias).catch(err => {
+        return this.client.deleteRoomAlias(transformedAlias).then(() => transformedAlias).catch(err => {
             LogService.error("Provisioner", "Error removing alias '" + transformedAlias + "' to " + roomId);
             LogService.error("Provisioner", err);
 

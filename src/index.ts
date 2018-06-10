@@ -4,12 +4,23 @@ import { LogService } from "matrix-js-snippets";
 import { CommandProcessor } from "./CommandProcessor";
 import { LocalstorageStorageProvider } from "./LocalstorageStorageProvider";
 import Provisioner from "./Provisioner";
+import ProvisioningApi from "./ProvisioningApi";
 
 LogService.configure(config.logging);
 const storageProvider = new LocalstorageStorageProvider(config.dataPath);
 const client = new MatrixClient(config.homeserverUrl, config.accessToken, storageProvider);
 const provisioner = new Provisioner(client);
 const commands = new CommandProcessor(client, provisioner);
+
+if (config.provisioning.enabled) {
+    if (config.provisioning.sharedSecret === "CHANGE_ME") {
+        LogService.error("index", "Provisioning enabled but the shared secret has not been changed. Please change the shared secret.");
+        process.exit(1);
+    }
+
+    const api = new ProvisioningApi(provisioner);
+    api.start();
+}
 
 let userId = "";
 client.getUserId().then(uid => {

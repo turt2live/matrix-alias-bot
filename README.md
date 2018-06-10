@@ -1,6 +1,9 @@
 # matrix-alias-bot
 
 [![TravisCI badge](https://travis-ci.org/turt2live/matrix-alias-bot.svg?branch=master)](https://travis-ci.org/turt2live/matrix-alias-bot)
+[![API Documentation](https://img.shields.io/badge/api%20documentation-Postman-blue.svg)](https://documenter.getpostman.com/view/1707443/RWEcNfTX)
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/68b2d069fbc0af28546d#?env%5BAlias%20Bot%20Sample%5D=W3sia2V5IjoidXNlcklkIiwidmFsdWUiOiJAZXhhbXBsZTptYXRyaXgub3JnIiwiZW5hYmxlZCI6dHJ1ZSwidHlwZSI6InRleHQifSx7ImtleSI6InJvb21JZCIsInZhbHVlIjoiIXJhbmRvbTptYXRyaXgub3JnIiwiZW5hYmxlZCI6dHJ1ZSwidHlwZSI6InRleHQifSx7ImtleSI6InNoYXJlZFNlY3JldCIsInZhbHVlIjoiQ0hBTkdFX01FIiwiZW5hYmxlZCI6dHJ1ZSwidHlwZSI6InRleHQifSx7ImtleSI6ImJvdEFkZHJlc3MiLCJ2YWx1ZSI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDUwMiIsImVuYWJsZWQiOnRydWUsInR5cGUiOiJ0ZXh0In0seyJrZXkiOiJhbGlhcyIsInZhbHVlIjoibXljb29sYWxpYXMiLCJlbmFibGVkIjp0cnVlLCJ0eXBlIjoidGV4dCJ9XQ==)
 
 A matrix bot that allows users to add aliases on the homeserver it runs on. 
 

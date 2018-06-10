@@ -19,6 +19,14 @@ dataPath: "./storage"
 # The help channel to advertise in the help menu for the bot. If empty, no help channel will be mentioned.
 helpChannel: "#help:t2bot.io"
 
+# Options for the provisioning API. The provisioning API allows someone to use the bot over an API
+# instead of just the in-room commands.
+provisioning:
+  enabled: false
+  bind: '0.0.0.0'
+  port: 4502
+  sharedSecret: 'CHANGE_ME'
+
 # Settings for controlling how logging works
 logging:
   file: logs/aliasbot.log
