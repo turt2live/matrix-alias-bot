@@ -16,8 +16,13 @@ export class CommandProcessor {
     }
 
     public async tryCommand(roomId: string, event: any): Promise<any> {
-        const message = event['content']['body'];
+        let message = event['content']['body'];
         if (!message || !message.startsWith("!alias")) return;
+
+        if (message.startsWith("!alias@")) {
+            if (!message.startsWith("!alias@" + config.aliasDomain)) return; // not for us
+            message = `!alias${message.substring(("!alias@" + config.aliasDomain).length)}`;
+        }
 
         let command = "help";
         const args = message.substring("!alias".length).trim().split(" ");
@@ -106,6 +111,7 @@ export class CommandProcessor {
                 `!alias unpublish             - Removes this room from the public room directory for ${config.aliasDomain}\n` +
                 "!alias help                  - This menu\n" +
                 "</code></pre></p>" +
+                `<p>If your room has multiple alias bots in it from different domains, use <code>!alias@${config.aliasDomain} help</code> (for example) to only invoke this instance.</p>` +
                 (config.helpChannel ? "<p>For help or more information, visit <a href='https://matrix.to/#/" + config.helpChannel + "'>" + config.helpChannel + "</a></p>" : "");
             return this.sendHtmlReply(roomId, event, htmlMessage, "info");
         }
