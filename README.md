@@ -15,7 +15,7 @@ Questions? Ask away in [#aliasbot:t2bot.io](https://matrix.to/#/#aliasbot:t2bot.
 2. Give the bot permission to add aliases (configure the room)
 3. Add your desired alias: `!alias #my_cool_alias`
 
-For information on the available aliases, type `!alias allowed`
+For information on what the bot can do, say `!alias help`.
 
 # Building your own
 
