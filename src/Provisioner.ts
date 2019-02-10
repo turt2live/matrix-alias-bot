@@ -5,7 +5,7 @@ import wildcard = require("node-wildcard");
 
 export default class Provisioner {
 
-    public constructor(private client: MatrixClient) {
+    public constructor(private client: MatrixClient, private userId: string) {
     }
 
     /**
@@ -149,7 +149,7 @@ export default class Provisioner {
     public async getAliasesInRoom(roomId: string, userId: string): Promise<string[]> {
         if (!(await this.isInRoom(userId, roomId))) throw new ProvisionerError(ERR_ALIAS_PERMISSION_DENIED, "You are not in the room.");
 
-        const aliasesEvent = await this.client.getRoomStateEvents(roomId, "m.room.aliases", config.aliasDomain);
+        const aliasesEvent = await this.client.getRoomStateEvent(roomId, "m.room.aliases", config.aliasDomain);
         if (!aliasesEvent || !aliasesEvent["aliases"]) return [];
 
         return aliasesEvent["aliases"];
@@ -161,15 +161,14 @@ export default class Provisioner {
      * @return {Promise<boolean, ProvisionerError>} Resolves to true or false representing the user's administrator status. Rejected if there was an error.
      */
     public async isAdmin(userId: string): Promise<boolean> {
-        return config.adminUsers.indexOf(userId) !== -1;
+        return config.adminUsers.indexOf(userId) !== -1 || userId === this.userId;
     }
 
     private async hasPermission(roomId: string, userId: string): Promise<boolean> {
         if (await this.isAdmin(userId)) return true;
         if (!(await this.isInRoom(userId, roomId))) return false;
 
-        const plEvent = await this.client.getRoomStateEvents(roomId, "m.room.power_levels", "");
-        console.log(plEvent);
+        const plEvent = await this.client.getRoomStateEvent(roomId, "m.room.power_levels", "");
         if (!plEvent) return false;
 
         let userLevel = 0;
